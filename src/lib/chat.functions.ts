@@ -55,11 +55,11 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     if (insErr) throw new Error(`Failed to save messages: ${insErr.message}`);
 
     // Update thread timestamp + auto-title from first user message if still default
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (thread.title === "New conversation") {
-      updates.title = data.content.slice(0, 60);
+      await supabase.from("chat_threads").update({ updated_at: new Date().toISOString(), title: data.content.slice(0, 60) }).eq("id", data.threadId);
+    } else {
+      await supabase.from("chat_threads").update({ updated_at: new Date().toISOString() }).eq("id", data.threadId);
     }
-    await supabase.from("chat_threads").update(updates).eq("id", data.threadId);
 
     return { assistant: assistantText };
   });

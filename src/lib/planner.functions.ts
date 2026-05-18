@@ -31,7 +31,8 @@ day_offset is 0..6 (0 = Monday). Use 24h times. Include 12-20 well-spaced events
     let parsed: { events?: Array<{ title: string; category: string; day_offset: number; start: string; end: string; notes?: string }> } = { events: [] };
     try { parsed = JSON.parse(raw); } catch { /* keep empty */ }
 
-    const validCats = new Set(["study", "work", "meeting", "party", "vacation", "health", "other"]);
+    const validCats = ["study", "work", "meeting", "party", "vacation", "health", "other"] as const;
+    type Cat = typeof validCats[number];
     const base = new Date(data.weekStart + "T00:00:00");
     const rows = (parsed.events ?? []).slice(0, 30).map((e) => {
       const day = new Date(base);
@@ -40,7 +41,7 @@ day_offset is 0..6 (0 = Monday). Use 24h times. Include 12-20 well-spaced events
       const [eh, em] = (e.end ?? "10:00").split(":").map(Number);
       const start = new Date(day); start.setHours(sh ?? 9, sm ?? 0, 0, 0);
       const end = new Date(day); end.setHours(eh ?? 10, em ?? 0, 0, 0);
-      const category = validCats.has(e.category) ? e.category : "other";
+      const category: Cat = (validCats as readonly string[]).includes(e.category) ? (e.category as Cat) : "other";
       return {
         user_id: userId,
         title: String(e.title ?? "Untitled").slice(0, 200),
