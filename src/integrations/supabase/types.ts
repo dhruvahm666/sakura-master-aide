@@ -14,16 +14,238 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_threads: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      checkins: {
+        Row: {
+          completed_text: string | null
+          created_at: string
+          day: string
+          day_summary: string | null
+          energy: number | null
+          id: string
+          mood: string | null
+          priorities: Json | null
+          problems_text: string | null
+          reflection: string | null
+          schedule: Json | null
+          user_id: string
+        }
+        Insert: {
+          completed_text?: string | null
+          created_at?: string
+          day?: string
+          day_summary?: string | null
+          energy?: number | null
+          id?: string
+          mood?: string | null
+          priorities?: Json | null
+          problems_text?: string | null
+          reflection?: string | null
+          schedule?: Json | null
+          user_id: string
+        }
+        Update: {
+          completed_text?: string | null
+          created_at?: string
+          day?: string
+          day_summary?: string | null
+          energy?: number | null
+          id?: string
+          mood?: string | null
+          priorities?: Json | null
+          problems_text?: string | null
+          reflection?: string | null
+          schedule?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invited_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+        }
+        Relationships: []
+      }
+      planner_events: {
+        Row: {
+          category: Database["public"]["Enums"]["event_category"]
+          created_at: string
+          end_at: string
+          id: string
+          notes: string | null
+          start_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["event_category"]
+          created_at?: string
+          end_at: string
+          id?: string
+          notes?: string | null
+          start_at: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["event_category"]
+          created_at?: string
+          end_at?: string
+          id?: string
+          notes?: string | null
+          start_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          preferences: Json
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          preferences?: Json
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          preferences?: Json
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      event_category:
+        | "study"
+        | "work"
+        | "meeting"
+        | "party"
+        | "vacation"
+        | "health"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +372,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      event_category: [
+        "study",
+        "work",
+        "meeting",
+        "party",
+        "vacation",
+        "health",
+        "other",
+      ],
+    },
   },
 } as const
