@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: any) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
 declare global {
   interface Window {
-    SpeechRecognition?: typeof SpeechRecognition;
-    webkitSpeechRecognition?: typeof SpeechRecognition;
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
     puter?: {
       ai: {
         txt2speech: (text: string, opts?: { voice?: string; engine?: string; language?: string }) => Promise<HTMLAudioElement>;
