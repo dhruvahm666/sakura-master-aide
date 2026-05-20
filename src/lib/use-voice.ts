@@ -95,7 +95,7 @@ export interface UseMicOpts {
 }
 
 export function useMic({ onFinal, onInterim, continuous = false }: UseMicOpts) {
-  const recogRef = useRef<SpeechRecognition | null>(null);
+  const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(true);
 
