@@ -76,10 +76,10 @@ function ThreadView() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-end gap-1 border-b border-border/40 px-3 py-1.5">
-        <Button asChild size="sm" variant="ghost" title="Voice mode">
+        <Button asChild size="sm" className="bg-gradient-sakura text-primary-foreground shadow-sakura" title="Start voice conversation">
           <Link to="/chat/$threadId/voice" params={{ threadId }}>
             <Headphones className="h-4 w-4" />
-            <span className="ml-1 hidden sm:inline">Voice Mode</span>
+            <span className="ml-1.5 hidden sm:inline">Voice Mode</span>
           </Link>
         </Button>
         {speaking && (
