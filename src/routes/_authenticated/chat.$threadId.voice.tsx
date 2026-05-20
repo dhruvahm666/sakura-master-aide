@@ -83,7 +83,7 @@ function VoiceMode() {
 
       <div className="relative">
         <div className={`absolute inset-0 rounded-full bg-primary/20 blur-3xl transition-all ${status === "listening" ? "scale-150 animate-pulse" : status === "speaking" ? "scale-125" : "scale-100"}`} />
-        <div className={`relative ${status === "speaking" ? "animate-spin-slow" : ""}`}>
+        <div className={`relative ${status === "speaking" ? "sakura-spin" : ""}`}>
           <SakuraLogo size={140} />
         </div>
       </div>
