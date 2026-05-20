@@ -10,7 +10,7 @@ import { SakuraLogo } from "@/components/SakuraLogo";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useMic, useSakuraSpeech, useTtsEnabled } from "@/lib/use-voice";
+import { useMic, useSakuraSpeech, useTtsEnabled, useVoiceSpeed } from "@/lib/use-voice";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ThreadView,
