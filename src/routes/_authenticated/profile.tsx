@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useTtsEnabled, useVoiceSpeed, useSakuraSpeech, type VoiceSpeed } from "@/lib/use-voice";
+import { Volume2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/profile")({ component: ProfilePage });
 
@@ -79,6 +82,63 @@ function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
+
+      <VoiceSettingsCard />
     </div>
+  );
+}
+
+function VoiceSettingsCard() {
+  const { enabled, toggle } = useTtsEnabled();
+  const { speed, setSpeed } = useVoiceSpeed();
+  const { speak, speaking, stop } = useSakuraSpeech();
+
+  const speeds: VoiceSpeed[] = ["slow", "normal", "fast"];
+
+  return (
+    <Card className="glass">
+      <CardHeader><CardTitle className="font-display">Voice settings</CardTitle></CardHeader>
+      <CardContent className="space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm">Auto-read Sakura's responses aloud</Label>
+            <p className="text-xs text-muted-foreground">When on, Sakura speaks every reply in chat.</p>
+          </div>
+          <Switch checked={enabled} onCheckedChange={toggle} />
+        </div>
+
+        <div>
+          <Label className="text-sm">Voice speed</Label>
+          <div className="mt-2 inline-flex rounded-lg border border-border/60 bg-card/50 p-1">
+            {speeds.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s)}
+                className={`rounded-md px-4 py-1.5 text-sm capitalize transition ${
+                  speed === s ? "bg-gradient-sakura text-primary-foreground shadow-sakura" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              speaking
+                ? stop()
+                : speak("Hello, Master. This is how I sound at this speed.", { speed })
+            }
+          >
+            <Volume2 className="mr-2 h-4 w-4" />
+            {speaking ? "Stop preview" : "Preview voice"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

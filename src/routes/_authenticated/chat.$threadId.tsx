@@ -10,7 +10,7 @@ import { SakuraLogo } from "@/components/SakuraLogo";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useMic, useSakuraSpeech, useTtsEnabled } from "@/lib/use-voice";
+import { useMic, useSakuraSpeech, useTtsEnabled, useVoiceSpeed } from "@/lib/use-voice";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ThreadView,
@@ -26,6 +26,7 @@ function ThreadView() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { enabled: ttsOn, toggle: toggleTts } = useTtsEnabled();
   const { speak, stop: stopSpeak, speaking } = useSakuraSpeech();
+  const { speed } = useVoiceSpeed();
   const lastSpokenId = useRef<string | null>(null);
 
   const { data: messages } = useQuery({
@@ -61,8 +62,8 @@ function ThreadView() {
     if (last.role !== "assistant") return;
     if (lastSpokenId.current === last.id) return;
     lastSpokenId.current = last.id;
-    speak(last.content);
-  }, [messages, ttsOn, speak]);
+    speak(last.content, { speed });
+  }, [messages, ttsOn, speak, speed]);
 
   function onSend() {
     const text = input.trim();
@@ -75,10 +76,10 @@ function ThreadView() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-end gap-1 border-b border-border/40 px-3 py-1.5">
-        <Button asChild size="sm" variant="ghost" title="Voice mode">
+        <Button asChild size="sm" className="bg-gradient-sakura text-primary-foreground shadow-sakura" title="Start voice conversation">
           <Link to="/chat/$threadId/voice" params={{ threadId }}>
             <Headphones className="h-4 w-4" />
-            <span className="ml-1 hidden sm:inline">Voice Mode</span>
+            <span className="ml-1.5 hidden sm:inline">Voice Mode</span>
           </Link>
         </Button>
         {speaking && (
@@ -104,7 +105,7 @@ function ThreadView() {
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${m.role === "user" ? "bg-primary/15 text-foreground" : "glass"}`}>
                 {m.role === "assistant" ? <SakuraMarkdown>{m.content}</SakuraMarkdown> : <p className="whitespace-pre-wrap text-sm">{m.content}</p>}
                 {m.role === "assistant" && (
-                  <button onClick={() => speak(m.content)} className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary">
+                  <button onClick={() => speak(m.content, { speed })} className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary">
                     <Volume2 className="h-3 w-3" /> Speak
                   </button>
                 )}
