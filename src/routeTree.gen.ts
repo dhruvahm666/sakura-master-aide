@@ -21,6 +21,7 @@ import { Route as AuthenticatedHealthRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedCheckinRouteImport } from './routes/_authenticated/checkin'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
+import { Route as AuthenticatedChatThreadIdVoiceRouteImport } from './routes/_authenticated/chat.$threadId.voice'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -82,6 +83,12 @@ const AuthenticatedChatThreadIdRoute =
     path: '/$threadId',
     getParentRoute: () => AuthenticatedChatRoute,
   } as any)
+const AuthenticatedChatThreadIdVoiceRoute =
+  AuthenticatedChatThreadIdVoiceRouteImport.update({
+    id: '/voice',
+    path: '/voice',
+    getParentRoute: () => AuthenticatedChatThreadIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,7 +101,8 @@ export interface FileRoutesByFullPath {
   '/news': typeof AuthenticatedNewsRoute
   '/planner': typeof AuthenticatedPlannerRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
+  '/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
+  '/chat/$threadId/voice': typeof AuthenticatedChatThreadIdVoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,7 +115,8 @@ export interface FileRoutesByTo {
   '/news': typeof AuthenticatedNewsRoute
   '/planner': typeof AuthenticatedPlannerRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
+  '/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
+  '/chat/$threadId/voice': typeof AuthenticatedChatThreadIdVoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,7 +131,8 @@ export interface FileRoutesById {
   '/_authenticated/news': typeof AuthenticatedNewsRoute
   '/_authenticated/planner': typeof AuthenticatedPlannerRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
-  '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
+  '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
+  '/_authenticated/chat/$threadId/voice': typeof AuthenticatedChatThreadIdVoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/profile'
     | '/chat/$threadId'
+    | '/chat/$threadId/voice'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/profile'
     | '/chat/$threadId'
+    | '/chat/$threadId/voice'
   id:
     | '__root__'
     | '/'
@@ -165,6 +177,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planner'
     | '/_authenticated/profile'
     | '/_authenticated/chat/$threadId'
+    | '/_authenticated/chat/$threadId/voice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -259,15 +272,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatThreadIdRouteImport
       parentRoute: typeof AuthenticatedChatRoute
     }
+    '/_authenticated/chat/$threadId/voice': {
+      id: '/_authenticated/chat/$threadId/voice'
+      path: '/voice'
+      fullPath: '/chat/$threadId/voice'
+      preLoaderRoute: typeof AuthenticatedChatThreadIdVoiceRouteImport
+      parentRoute: typeof AuthenticatedChatThreadIdRoute
+    }
   }
 }
 
+interface AuthenticatedChatThreadIdRouteChildren {
+  AuthenticatedChatThreadIdVoiceRoute: typeof AuthenticatedChatThreadIdVoiceRoute
+}
+
+const AuthenticatedChatThreadIdRouteChildren: AuthenticatedChatThreadIdRouteChildren =
+  {
+    AuthenticatedChatThreadIdVoiceRoute: AuthenticatedChatThreadIdVoiceRoute,
+  }
+
+const AuthenticatedChatThreadIdRouteWithChildren =
+  AuthenticatedChatThreadIdRoute._addFileChildren(
+    AuthenticatedChatThreadIdRouteChildren,
+  )
+
 interface AuthenticatedChatRouteChildren {
-  AuthenticatedChatThreadIdRoute: typeof AuthenticatedChatThreadIdRoute
+  AuthenticatedChatThreadIdRoute: typeof AuthenticatedChatThreadIdRouteWithChildren
 }
 
 const AuthenticatedChatRouteChildren: AuthenticatedChatRouteChildren = {
-  AuthenticatedChatThreadIdRoute: AuthenticatedChatThreadIdRoute,
+  AuthenticatedChatThreadIdRoute: AuthenticatedChatThreadIdRouteWithChildren,
 }
 
 const AuthenticatedChatRouteWithChildren =
@@ -307,13 +341,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
