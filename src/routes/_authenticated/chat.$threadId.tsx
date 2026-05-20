@@ -26,6 +26,7 @@ function ThreadView() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { enabled: ttsOn, toggle: toggleTts } = useTtsEnabled();
   const { speak, stop: stopSpeak, speaking } = useSakuraSpeech();
+  const { speed } = useVoiceSpeed();
   const lastSpokenId = useRef<string | null>(null);
 
   const { data: messages } = useQuery({
