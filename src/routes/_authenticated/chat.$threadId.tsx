@@ -105,7 +105,7 @@ function ThreadView() {
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${m.role === "user" ? "bg-primary/15 text-foreground" : "glass"}`}>
                 {m.role === "assistant" ? <SakuraMarkdown>{m.content}</SakuraMarkdown> : <p className="whitespace-pre-wrap text-sm">{m.content}</p>}
                 {m.role === "assistant" && (
-                  <button onClick={() => speak(m.content)} className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary">
+                  <button onClick={() => speak(m.content, { speed })} className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary">
                     <Volume2 className="h-3 w-3" /> Speak
                   </button>
                 )}
