@@ -62,8 +62,8 @@ function ThreadView() {
     if (last.role !== "assistant") return;
     if (lastSpokenId.current === last.id) return;
     lastSpokenId.current = last.id;
-    speak(last.content);
-  }, [messages, ttsOn, speak]);
+    speak(last.content, { speed });
+  }, [messages, ttsOn, speak, speed]);
 
   function onSend() {
     const text = input.trim();
