@@ -22,7 +22,7 @@ declare global {
 }
 
 /* ============================================================
-   Settings (persisted in localStorage)
+   Persisted voice prefs
    ============================================================ */
 
 const TTS_KEY = "sakura.ttsEnabled";
@@ -68,104 +68,46 @@ export function speedToRate(s: VoiceSpeed): number {
 
 export function cleanForSpeech(text: string): string {
   return text
-    .replace(/```chart[\s\S]*?```/g, " (chart shown) ")
+    .replace(/```chart[\s\S]*?```/g, " ")
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[#*_>|~]/g, " ")
+    .replace(/^\s*\|.*\|\s*$/gm, " ")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/[#*_>~|]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 1800);
+    .slice(0, 2000);
 }
 
 /* ============================================================
-   Sakura speech — Kokoro TTS with graceful fallbacks
+   Sakura speech — ElevenLabs (Rachel) via server route, with
+   SpeechSynthesis fallback if the network fails.
    ============================================================ */
-
-const KOKORO_PRIMARY = "https://api.kokorotts.com/v1/audio/speech";
-const KOKORO_FALLBACK = "https://voice-generator.pages.dev/api/generate";
-
-async function fetchKokoroAudio(text: string, speed: number): Promise<Blob | null> {
-  // Primary endpoint
-  try {
-    const res = await fetch(KOKORO_PRIMARY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "kokoro", input: text, voice: "af_sarah", speed }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 0 && blob.type.startsWith("audio")) return blob;
-    }
-  } catch { /* fall through */ }
-
-  // Fallback endpoint
-  try {
-    const res = await fetch(KOKORO_FALLBACK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice: "af_sarah", speed }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 0 && blob.type.startsWith("audio")) return blob;
-    }
-  } catch { /* fall through */ }
-
-  return null;
-}
-
-function pickBrowserVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" || !window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  const prefer = [
-    "Google UK English Female",
-    "Microsoft Aria Online (Natural) - English (United States)",
-    "Microsoft Jenny Online (Natural) - English (United States)",
-    "Samantha",
-    "Karen",
-    "Victoria",
-  ];
-  for (const name of prefer) {
-    const v = voices.find((x) => x.name === name);
-    if (v) return v;
-  }
-  return voices.find((v) => /female|samantha|aria|jenny|sara|zira/i.test(v.name)) ?? voices[0];
-}
 
 export function useSakuraSpeech() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const [speaking, setSpeaking] = useState(false);
   const tokenRef = useRef(0);
+  const [speaking, setSpeaking] = useState(false);
 
   const stop = useCallback(() => {
     tokenRef.current++;
     try {
-      audioRef.current?.pause();
-      if (audioRef.current) {
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
+      const a = audioRef.current;
+      if (a) { a.pause(); a.src = ""; }
     } catch { /* noop */ }
-    try {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    } catch { /* noop */ }
-    synthRef.current = null;
+    audioRef.current = null;
+    try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
     setSpeaking(false);
   }, []);
 
-  const speak = useCallback(async (rawText: string, opts?: { speed?: VoiceSpeed; onEnd?: () => void }) => {
+  const speak = useCallback(async (rawText: string, opts?: { speed?: VoiceSpeed; onEnd?: () => void; onStart?: () => void }) => {
     const text = cleanForSpeech(rawText);
-    if (!text || typeof window === "undefined") return;
+    if (!text) { opts?.onEnd?.(); return; }
     stop();
     const myToken = ++tokenRef.current;
     setSpeaking(true);
-    const rate = speedToRate(opts?.speed ?? "normal");
 
     const finish = () => {
       if (tokenRef.current !== myToken) return;
@@ -173,51 +115,43 @@ export function useSakuraSpeech() {
       opts?.onEnd?.();
     };
 
-    // Try Kokoro
-    const blob = await fetchKokoroAudio(text, rate);
-    if (tokenRef.current !== myToken) return;
+    try {
+      const res = await fetch("/api/voice/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (tokenRef.current !== myToken) return;
+      if (!res.ok) throw new Error(`TTS ${res.status}`);
+      const blob = await res.blob();
+      if (tokenRef.current !== myToken) return;
 
-    if (blob) {
-      try {
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => { URL.revokeObjectURL(url); finish(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); finish(); };
-        await audio.play();
-        return;
-      } catch (e) {
-        console.warn("Kokoro audio play failed, falling back to SpeechSynthesis", e);
-      }
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.playbackRate = speedToRate(opts?.speed ?? "normal");
+      audioRef.current = audio;
+      audio.onplay = () => opts?.onStart?.();
+      audio.onended = () => { URL.revokeObjectURL(url); finish(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); finish(); };
+      await audio.play();
+      return;
+    } catch (e) {
+      console.warn("ElevenLabs TTS failed, falling back", e);
     }
 
-    // Browser SpeechSynthesis fallback
-    if (window.speechSynthesis) {
-      try {
-        // Voices may load async on first use
-        if (!window.speechSynthesis.getVoices().length) {
-          await new Promise<void>((resolve) => {
-            const t = setTimeout(resolve, 600);
-            window.speechSynthesis.onvoiceschanged = () => { clearTimeout(t); resolve(); };
-          });
-        }
-        if (tokenRef.current !== myToken) return;
-        const u = new SpeechSynthesisUtterance(text);
-        const v = pickBrowserVoice();
-        if (v) u.voice = v;
-        u.rate = rate;
-        u.pitch = 1.05;
-        u.onend = finish;
-        u.onerror = finish;
-        synthRef.current = u;
-        window.speechSynthesis.speak(u);
-        return;
-      } catch (e) {
-        console.error("SpeechSynthesis failed", e);
-      }
+    // Fallback: browser SpeechSynthesis
+    try {
+      if (!window.speechSynthesis) { finish(); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = speedToRate(opts?.speed ?? "normal");
+      u.pitch = 1.05;
+      u.onstart = () => opts?.onStart?.();
+      u.onend = finish;
+      u.onerror = finish;
+      window.speechSynthesis.speak(u);
+    } catch {
+      finish();
     }
-
-    finish();
   }, [stop]);
 
   useEffect(() => () => stop(), [stop]);
@@ -225,7 +159,8 @@ export function useSakuraSpeech() {
 }
 
 /* ============================================================
-   Simple mic (push-to-talk) used by the regular chat input.
+   Simple push-to-talk mic (browser SpeechRecognition) — used by
+   the regular chat input. Voice Mode uses MediaRecorder+Whisper.
    ============================================================ */
 
 export interface UseMicOpts {
@@ -246,9 +181,8 @@ export function useMic({ onFinal, onInterim }: UseMicOpts) {
     r.lang = "en-US";
     r.interimResults = true;
     r.continuous = false;
-    r.onresult = (e) => {
-      let interim = "";
-      let final = "";
+    r.onresult = (e: any) => {
+      let interim = "", final = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
         if (res.isFinal) final += res[0].transcript;
@@ -265,7 +199,7 @@ export function useMic({ onFinal, onInterim }: UseMicOpts) {
 
   const start = useCallback(() => {
     if (!recogRef.current) return;
-    try { recogRef.current.start(); setListening(true); } catch { /* already running */ }
+    try { recogRef.current.start(); setListening(true); } catch { /* noop */ }
   }, []);
   const stop = useCallback(() => {
     try { recogRef.current?.stop(); } catch { /* noop */ }
@@ -277,146 +211,123 @@ export function useMic({ onFinal, onInterim }: UseMicOpts) {
 }
 
 /* ============================================================
-   Continuous conversation mic — for Voice Mode.
-   - continuous=true, interimResults=true
-   - silence detection (1.5s after last speech) → commits transcript
-   - auto-restarts on onend until externally stopped
-   - emits onSpeechStart whenever the user begins talking (for interrupts)
+   Voice Activity Detection + MediaRecorder + Groq Whisper.
+   - opens mic once for the lifetime of the hook
+   - emits `level` (0..1) for waveform visualization
+   - calls `onSpeechStart` when sustained speech begins
+     (used to interrupt Sakura mid-sentence)
+   - records the utterance and stops after `silenceMs` of silence
+   - posts the blob to /api/voice/transcribe and resolves with text
    ============================================================ */
 
-export interface ContinuousMicOpts {
-  onCommit: (text: string) => void;
-  onInterim?: (text: string) => void;
+export interface UseVoiceCaptureOpts {
+  active: boolean;
   onSpeechStart?: () => void;
-  silenceMs?: number;
+  onTranscript: (text: string) => void;
+  onError?: (err: Error) => void;
+  silenceMs?: number;          // default 2500
+  speechThreshold?: number;    // RMS 0..1, default 0.04
+  minSpeechMs?: number;        // default 300, ignore micro-sounds
 }
 
-export function useContinuousMic(opts: ContinuousMicOpts) {
-  const { onCommit, onInterim, onSpeechStart, silenceMs = 1500 } = opts;
-  const recogRef = useRef<SpeechRecognitionLike | null>(null);
-  const activeRef = useRef(false);
-  const bufferRef = useRef("");
-  const interimRef = useRef("");
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSpeechFiredRef = useRef(false);
-  const [listening, setListening] = useState(false);
-  const [supported, setSupported] = useState(true);
+type CapState = "idle" | "listening" | "recording" | "transcribing";
 
-  // Keep callbacks fresh without re-creating recognizer
-  const cbs = useRef({ onCommit, onInterim, onSpeechStart });
-  useEffect(() => { cbs.current = { onCommit, onInterim, onSpeechStart }; }, [onCommit, onInterim, onSpeechStart]);
+export function useVoiceCapture(opts: UseVoiceCaptureOpts) {
+  const {
+    active, onSpeechStart, onTranscript, onError,
+    silenceMs = 2500, speechThreshold = 0.04, minSpeechMs = 300,
+  } = opts;
 
-  const clearSilence = () => {
-    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+  const [state, setState] = useState<CapState>("idle");
+  const [level, setLevel] = useState(0);
+  const [silenceRemainingMs, setSilenceRemainingMs] = useState(0);
+
+  const streamRef = useRef<MediaStream | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const speechStartAtRef = useRef<number>(0);
+  const lastVoiceAtRef = useRef<number>(0);
+  const recordingRef = useRef(false);
+  const pausedRef = useRef(false); // paused while Sakura speaks / transcribing
+
+  const cbsRef = useRef({ onSpeechStart, onTranscript, onError });
+  useEffect(() => { cbsRef.current = { onSpeechStart, onTranscript, onError }; }, [onSpeechStart, onTranscript, onError]);
+
+  const pickMime = () => {
+    if (typeof MediaRecorder === "undefined") return "";
+    const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+    for (const m of candidates) if ((MediaRecorder as any).isTypeSupported?.(m)) return m;
+    return "";
   };
 
-  const commit = useCallback(() => {
-    clearSilence();
-    const text = (bufferRef.current + " " + interimRef.current).trim();
-    bufferRef.current = "";
-    interimRef.current = "";
-    lastSpeechFiredRef.current = false;
-    if (text) cbs.current.onCommit(text);
+  const stopRecorderAndSend = useCallback(() => {
+    const rec = recRef.current;
+    if (!rec || !recordingRef.current) return;
+    recordingRef.current = false;
+    setSilenceRemainingMs(0);
+    try { rec.stop(); } catch { /* noop */ }
   }, []);
 
-  const scheduleSilence = useCallback(() => {
-    clearSilence();
-    silenceTimerRef.current = setTimeout(() => {
-      commit();
-    }, silenceMs);
-  }, [commit, silenceMs]);
+  const startRecorder = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream || recordingRef.current) return;
+    const mime = pickMime();
+    let rec: MediaRecorder;
+    try {
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch (e) {
+      cbsRef.current.onError?.(e as Error);
+      return;
+    }
+    chunksRef.current = [];
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data); };
+    rec.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+      chunksRef.current = [];
+      if (blob.size < 1500) { // too short, skip transcription
+        setState("listening");
+        return;
+      }
+      setState("transcribing");
+      pausedRef.current = true; // do not start a new recording until consumer resumes
+      try {
+        const fd = new FormData();
+        const ext = (rec.mimeType || "audio/webm").includes("mp4") ? "mp4"
+          : (rec.mimeType || "audio/webm").includes("ogg") ? "ogg" : "webm";
+        fd.append("file", blob, `speech.${ext}`);
+        const res = await fetch("/api/voice/transcribe", { method: "POST", body: fd });
+        if (!res.ok) throw new Error(`Transcribe failed: ${res.status}`);
+        const data = (await res.json()) as { text?: string };
+        const text = (data.text ?? "").trim();
+        if (text) cbsRef.current.onTranscript(text);
+        else setState("listening");
+      } catch (err) {
+        cbsRef.current.onError?.(err as Error);
+        setState("listening");
+        pausedRef.current = false;
+      }
+    };
+    recRef.current = rec;
+    recordingRef.current = true;
+    speechStartAtRef.current = performance.now();
+    lastVoiceAtRef.current = performance.now();
+    setState("recording");
+    try { rec.start(100); } catch (e) { cbsRef.current.onError?.(e as Error); }
+  }, []);
 
+  // Control loop driven by RAF — measures level + manages VAD
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Ctor) { setSupported(false); return; }
-    const r = new Ctor();
-    r.lang = "en-US";
-    r.interimResults = true;
-    r.continuous = true;
-    r.onstart = () => setListening(true);
-    r.onresult = (e: any) => {
-      let interim = "";
-      let final = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
-        if (res.isFinal) final += res[0].transcript + " ";
-        else interim += res[0].transcript + " ";
-      }
-      if ((interim || final) && !lastSpeechFiredRef.current) {
-        lastSpeechFiredRef.current = true;
-        cbs.current.onSpeechStart?.();
-      }
-      if (final) bufferRef.current += final;
-      interimRef.current = interim;
-      cbs.current.onInterim?.((bufferRef.current + " " + interim).trim());
-      scheduleSilence();
-    };
-    r.onerror = (ev: any) => {
-      // 'no-speech' is benign — recognizer will end and we restart below
-      if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") {
-        activeRef.current = false;
-        setListening(false);
-      }
-    };
-    r.onend = () => {
-      setListening(false);
-      if (activeRef.current) {
-        // Restart shortly to keep continuous listening
-        setTimeout(() => {
-          if (activeRef.current) {
-            try { r.start(); } catch { /* may already be starting */ }
-          }
-        }, 150);
-      }
-    };
-    recogRef.current = r;
-    return () => {
-      activeRef.current = false;
-      clearSilence();
-      try { r.abort(); } catch { /* noop */ }
-    };
-  }, [scheduleSilence]);
-
-  const start = useCallback(() => {
-    if (!recogRef.current) return;
-    activeRef.current = true;
-    bufferRef.current = "";
-    interimRef.current = "";
-    lastSpeechFiredRef.current = false;
-    try { recogRef.current.start(); } catch { /* already running */ }
-  }, []);
-
-  const stop = useCallback(() => {
-    activeRef.current = false;
-    clearSilence();
-    bufferRef.current = "";
-    interimRef.current = "";
-    try { recogRef.current?.stop(); } catch { /* noop */ }
-    setListening(false);
-  }, []);
-
-  return { listening, supported, start, stop };
-}
-
-/* ============================================================
-   Mic level meter (waveform) — uses getUserMedia + AnalyserNode.
-   Returns a value 0..1 representing current RMS volume.
-   ============================================================ */
-
-export function useMicLevel(active: boolean) {
-  const [level, setLevel] = useState(0);
-  const rafRef = useRef<number | null>(null);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  useEffect(() => {
-    if (!active || typeof window === "undefined") return;
+    if (!active) return;
     let cancelled = false;
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         streamRef.current = stream;
         const Ctx = window.AudioContext || (window as any).webkitAudioContext;
@@ -424,9 +335,13 @@ export function useMicLevel(active: boolean) {
         ctxRef.current = ctx;
         const src = ctx.createMediaStreamSource(stream);
         const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
+        analyser.fftSize = 1024;
         src.connect(analyser);
+        analyserRef.current = analyser;
         const data = new Uint8Array(analyser.fftSize);
+
+        setState("listening");
+        pausedRef.current = false;
 
         const tick = () => {
           analyser.getByteTimeDomainData(data);
@@ -436,25 +351,83 @@ export function useMicLevel(active: boolean) {
             sum += v * v;
           }
           const rms = Math.sqrt(sum / data.length);
-          setLevel(Math.min(1, rms * 2.5));
+          const norm = Math.min(1, rms * 3);
+          setLevel(norm);
+
+          const now = performance.now();
+          const isSpeech = rms > speechThreshold;
+
+          if (!pausedRef.current) {
+            if (isSpeech) {
+              lastVoiceAtRef.current = now;
+              if (!recordingRef.current) {
+                // start recording when speech first detected
+                startRecorder();
+                cbsRef.current.onSpeechStart?.();
+              }
+              setSilenceRemainingMs(silenceMs);
+            } else if (recordingRef.current) {
+              const silentFor = now - lastVoiceAtRef.current;
+              const remaining = Math.max(0, silenceMs - silentFor);
+              setSilenceRemainingMs(remaining);
+              const spokenFor = lastVoiceAtRef.current - speechStartAtRef.current;
+              if (silentFor >= silenceMs && spokenFor >= minSpeechMs) {
+                stopRecorderAndSend();
+              } else if (silentFor >= silenceMs && spokenFor < minSpeechMs) {
+                // too short — abandon and keep listening
+                recordingRef.current = false;
+                try { recRef.current?.stop(); } catch { /* noop */ }
+                chunksRef.current = [];
+                setState("listening");
+                setSilenceRemainingMs(0);
+              }
+            }
+          }
+
           rafRef.current = requestAnimationFrame(tick);
         };
         tick();
-      } catch (e) {
-        console.warn("Mic level meter unavailable", e);
+      } catch (err) {
+        cbsRef.current.onError?.(err as Error);
       }
     })();
 
     return () => {
       cancelled = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      try { recRef.current?.stop(); } catch { /* noop */ }
       try { ctxRef.current?.close(); } catch { /* noop */ }
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      recRef.current = null;
+      analyserRef.current = null;
       ctxRef.current = null;
       streamRef.current = null;
+      recordingRef.current = false;
       setLevel(0);
+      setSilenceRemainingMs(0);
+      setState("idle");
     };
-  }, [active]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, silenceMs, speechThreshold, minSpeechMs]);
 
-  return level;
+  /** Consumer calls this after Sakura finishes speaking to resume listening. */
+  const resume = useCallback(() => {
+    pausedRef.current = false;
+    speechStartAtRef.current = performance.now();
+    lastVoiceAtRef.current = performance.now();
+    setState("listening");
+  }, []);
+
+  /** Pause mic capture (e.g., while Sakura is speaking, or for a mute toggle). */
+  const pause = useCallback(() => {
+    pausedRef.current = true;
+    if (recordingRef.current) {
+      recordingRef.current = false;
+      try { recRef.current?.stop(); } catch { /* noop */ }
+      chunksRef.current = [];
+    }
+    setSilenceRemainingMs(0);
+  }, []);
+
+  return { state, level, silenceRemainingMs, resume, pause };
 }

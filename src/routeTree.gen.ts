@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticated/planner'
 import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/news'
@@ -38,6 +39,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedVoiceRoute = AuthenticatedVoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/news': typeof AuthenticatedNewsRoute
   '/planner': typeof AuthenticatedPlannerRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/voice': typeof AuthenticatedVoiceRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
   '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
   '/api/voice/tts': typeof ApiVoiceTtsRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/news': typeof AuthenticatedNewsRoute
   '/planner': typeof AuthenticatedPlannerRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/voice': typeof AuthenticatedVoiceRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
   '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
   '/api/voice/tts': typeof ApiVoiceTtsRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_authenticated/news': typeof AuthenticatedNewsRoute
   '/_authenticated/planner': typeof AuthenticatedPlannerRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/voice': typeof AuthenticatedVoiceRoute
   '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
   '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
   '/api/voice/tts': typeof ApiVoiceTtsRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/planner'
     | '/profile'
+    | '/voice'
     | '/chat/$threadId'
     | '/api/voice/transcribe'
     | '/api/voice/tts'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/planner'
     | '/profile'
+    | '/voice'
     | '/chat/$threadId'
     | '/api/voice/transcribe'
     | '/api/voice/tts'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/news'
     | '/_authenticated/planner'
     | '/_authenticated/profile'
+    | '/_authenticated/voice'
     | '/_authenticated/chat/$threadId'
     | '/api/voice/transcribe'
     | '/api/voice/tts'
@@ -234,6 +246,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/voice': {
+      id: '/_authenticated/voice'
+      path: '/voice'
+      fullPath: '/voice'
+      preLoaderRoute: typeof AuthenticatedVoiceRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
@@ -356,6 +375,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNewsRoute: typeof AuthenticatedNewsRoute
   AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedVoiceRoute: typeof AuthenticatedVoiceRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -367,6 +387,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNewsRoute: AuthenticatedNewsRoute,
   AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedVoiceRoute: AuthenticatedVoiceRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
