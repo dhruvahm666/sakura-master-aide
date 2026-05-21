@@ -20,6 +20,8 @@ import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedHealthRouteImport } from './routes/_authenticated/health'
 import { Route as AuthenticatedCheckinRouteImport } from './routes/_authenticated/checkin'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
+import { Route as ApiVoiceTtsRouteImport } from './routes/api/voice/tts'
+import { Route as ApiVoiceTranscribeRouteImport } from './routes/api/voice/transcribe'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
 import { Route as AuthenticatedChatThreadIdVoiceRouteImport } from './routes/_authenticated/chat.$threadId.voice'
 
@@ -77,6 +79,16 @@ const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiVoiceTtsRoute = ApiVoiceTtsRouteImport.update({
+  id: '/api/voice/tts',
+  path: '/api/voice/tts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVoiceTranscribeRoute = ApiVoiceTranscribeRouteImport.update({
+  id: '/api/voice/transcribe',
+  path: '/api/voice/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedChatThreadIdRoute =
   AuthenticatedChatThreadIdRouteImport.update({
     id: '/$threadId',
@@ -102,6 +114,8 @@ export interface FileRoutesByFullPath {
   '/planner': typeof AuthenticatedPlannerRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
+  '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
+  '/api/voice/tts': typeof ApiVoiceTtsRoute
   '/chat/$threadId/voice': typeof AuthenticatedChatThreadIdVoiceRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +130,8 @@ export interface FileRoutesByTo {
   '/planner': typeof AuthenticatedPlannerRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
+  '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
+  '/api/voice/tts': typeof ApiVoiceTtsRoute
   '/chat/$threadId/voice': typeof AuthenticatedChatThreadIdVoiceRoute
 }
 export interface FileRoutesById {
@@ -132,6 +148,8 @@ export interface FileRoutesById {
   '/_authenticated/planner': typeof AuthenticatedPlannerRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRouteWithChildren
+  '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
+  '/api/voice/tts': typeof ApiVoiceTtsRoute
   '/_authenticated/chat/$threadId/voice': typeof AuthenticatedChatThreadIdVoiceRoute
 }
 export interface FileRouteTypes {
@@ -148,6 +166,8 @@ export interface FileRouteTypes {
     | '/planner'
     | '/profile'
     | '/chat/$threadId'
+    | '/api/voice/transcribe'
+    | '/api/voice/tts'
     | '/chat/$threadId/voice'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -162,6 +182,8 @@ export interface FileRouteTypes {
     | '/planner'
     | '/profile'
     | '/chat/$threadId'
+    | '/api/voice/transcribe'
+    | '/api/voice/tts'
     | '/chat/$threadId/voice'
   id:
     | '__root__'
@@ -177,6 +199,8 @@ export interface FileRouteTypes {
     | '/_authenticated/planner'
     | '/_authenticated/profile'
     | '/_authenticated/chat/$threadId'
+    | '/api/voice/transcribe'
+    | '/api/voice/tts'
     | '/_authenticated/chat/$threadId/voice'
   fileRoutesById: FileRoutesById
 }
@@ -184,6 +208,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiVoiceTranscribeRoute: typeof ApiVoiceTranscribeRoute
+  ApiVoiceTtsRoute: typeof ApiVoiceTtsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +291,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/voice/tts': {
+      id: '/api/voice/tts'
+      path: '/api/voice/tts'
+      fullPath: '/api/voice/tts'
+      preLoaderRoute: typeof ApiVoiceTtsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice/transcribe': {
+      id: '/api/voice/transcribe'
+      path: '/api/voice/transcribe'
+      fullPath: '/api/voice/transcribe'
+      preLoaderRoute: typeof ApiVoiceTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/chat/$threadId': {
       id: '/_authenticated/chat/$threadId'
       path: '/$threadId'
@@ -337,6 +377,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiVoiceTranscribeRoute: ApiVoiceTranscribeRoute,
+  ApiVoiceTtsRoute: ApiVoiceTtsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
