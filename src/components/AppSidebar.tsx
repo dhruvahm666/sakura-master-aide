@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { MessageCircle, CalendarCheck, CalendarRange, Newspaper, LineChart, HeartPulse, UserCircle, Mail, LogOut } from "lucide-react";
+import { MessageCircle, Mic, CalendarCheck, CalendarRange, Newspaper, LineChart, HeartPulse, UserCircle, Mail, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -12,6 +12,7 @@ import { whoAmI } from "@/lib/invites.functions";
 
 const items = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
+  { title: "Voice", url: "/voice", icon: Mic },
   { title: "Check-in", url: "/checkin", icon: CalendarCheck },
   { title: "Planner", url: "/planner", icon: CalendarRange },
   { title: "News", url: "/news", icon: Newspaper },
