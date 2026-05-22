@@ -146,13 +146,32 @@ function LoginPage() {
               {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="mt-4 w-full text-sm text-muted-foreground hover:text-primary"
-          >
-            {mode === "signin" ? "Have an invite? Create your account →" : "Already have an account? Sign in"}
-          </button>
+          <div className="mt-5 border-t border-border/60 pt-4">
+            {mode === "signin" ? (
+              <>
+                <p className="mb-2 text-center text-xs text-muted-foreground">
+                  Don't have an account yet, Master?
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setMode("signup"); setPassword(""); }}
+                  className="w-full border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  Create Account
+                </Button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setPassword(""); }}
+                className="w-full text-sm text-muted-foreground hover:text-primary"
+              >
+                ← Already have an account? Sign in
+              </button>
+            )}
+          </div>
+
         </Card>
       </div>
     </div>
