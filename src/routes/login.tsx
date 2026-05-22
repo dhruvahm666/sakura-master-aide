@@ -49,7 +49,16 @@ function LoginPage() {
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          const msg = error.message.toLowerCase();
+          if (msg.includes("not confirmed") || msg.includes("confirm")) {
+            throw new Error("Please confirm your email first, Master. Check your inbox.");
+          }
+          if (msg.includes("invalid") || msg.includes("credentials")) {
+            throw new Error("Incorrect email or password, Master. Please try again. If you don't have an account yet, create one first.");
+          }
+          throw error;
+        }
         toast.success(`Welcome back, Master.`);
         nav({ to: "/chat" });
       } else {
@@ -64,9 +73,15 @@ function LoginPage() {
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
-        if (error) throw error;
-        toast.success("Account created. You may sign in.");
+        if (error) {
+          if (error.message.toLowerCase().includes("registered")) {
+            throw new Error("This email already has an account, Master. Try signing in instead.");
+          }
+          throw error;
+        }
+        toast.success("Check your email to confirm your account, Master.", { duration: 8000 });
         setMode("signin");
+        setPassword("");
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -74,6 +89,7 @@ function LoginPage() {
       setLoading(false);
     }
   }
+
 
   return (
     <div className="relative min-h-screen overflow-hidden">
