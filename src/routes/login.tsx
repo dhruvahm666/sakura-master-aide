@@ -49,7 +49,16 @@ function LoginPage() {
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          const msg = error.message.toLowerCase();
+          if (msg.includes("not confirmed") || msg.includes("confirm")) {
+            throw new Error("Please confirm your email first, Master. Check your inbox.");
+          }
+          if (msg.includes("invalid") || msg.includes("credentials")) {
+            throw new Error("Incorrect email or password, Master. Please try again. If you don't have an account yet, create one first.");
+          }
+          throw error;
+        }
         toast.success(`Welcome back, Master.`);
         nav({ to: "/chat" });
       } else {
@@ -64,9 +73,15 @@ function LoginPage() {
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
-        if (error) throw error;
-        toast.success("Account created. You may sign in.");
+        if (error) {
+          if (error.message.toLowerCase().includes("registered")) {
+            throw new Error("This email already has an account, Master. Try signing in instead.");
+          }
+          throw error;
+        }
+        toast.success("Check your email to confirm your account, Master.", { duration: 8000 });
         setMode("signin");
+        setPassword("");
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -74,6 +89,7 @@ function LoginPage() {
       setLoading(false);
     }
   }
+
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -88,8 +104,11 @@ function LoginPage() {
             {mode === "signin" ? "Welcome back, Master" : "Step into the garden"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "Sign in to continue your conversation." : "Sakura is invite-only — use the email you were invited with."}
+            {mode === "signin"
+              ? "Sign in to continue. New here? Create your account below first, Master."
+              : "Sakura is invite-only — use the email you were invited with. You'll receive a confirmation email."}
           </p>
+
           <Button
             type="button"
             onClick={onGoogle}
@@ -127,13 +146,32 @@ function LoginPage() {
               {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="mt-4 w-full text-sm text-muted-foreground hover:text-primary"
-          >
-            {mode === "signin" ? "Have an invite? Create your account →" : "Already have an account? Sign in"}
-          </button>
+          <div className="mt-5 border-t border-border/60 pt-4">
+            {mode === "signin" ? (
+              <>
+                <p className="mb-2 text-center text-xs text-muted-foreground">
+                  Don't have an account yet, Master?
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setMode("signup"); setPassword(""); }}
+                  className="w-full border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  Create Account
+                </Button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setPassword(""); }}
+                className="w-full text-sm text-muted-foreground hover:text-primary"
+              >
+                ← Already have an account? Sign in
+              </button>
+            )}
+          </div>
+
         </Card>
       </div>
     </div>
