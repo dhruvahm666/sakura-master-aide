@@ -62,10 +62,7 @@ function LoginPage() {
         toast.success(`Welcome back, Master.`);
         nav({ to: "/chat" });
       } else {
-        const allowed = await check({ data: { email } });
-        if (!allowed.allowed) {
-          throw new Error("This email is not invited. Sakura is invite-only.");
-        }
+
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
