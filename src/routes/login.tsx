@@ -90,7 +90,25 @@ function LoginPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin" ? "Sign in to continue your conversation." : "Sakura is invite-only — use the email you were invited with."}
           </p>
-          <form onSubmit={onSubmit} className="mt-5 space-y-3">
+          <Button
+            type="button"
+            onClick={onGoogle}
+            disabled={googleLoading}
+            variant="outline"
+            className="mt-5 w-full gap-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.7 4-5.5 4-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.3 14.6 2.4 12 2.4 6.9 2.4 2.8 6.5 2.8 11.6S6.9 20.8 12 20.8c6.9 0 9.5-4.8 9.5-7.3 0-.5 0-.9-.1-1.3H12z"/>
+            </svg>
+            {googleLoading ? "Opening Google…" : "Continue with Google"}
+          </Button>
+          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            or
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <form onSubmit={onSubmit} className="space-y-3">
+
             {mode === "signup" && (
               <div>
                 <Label htmlFor="name">How should Sakura address you?</Label>
