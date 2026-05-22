@@ -21,7 +21,27 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const check = useServerFn(checkSignupAllowed);
+
+  async function onGoogle() {
+    setGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/chat`,
+      });
+      if (result.redirected) return;
+      if (result.error) throw result.error;
+      toast.success("Welcome, Master.");
+      nav({ to: "/chat" });
+    } catch (err) {
+      toast.error(`Google sign-in failed: ${(err as Error).message}. Use email & password instead.`);
+      setMode("signin");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
