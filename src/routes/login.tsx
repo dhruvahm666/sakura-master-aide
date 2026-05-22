@@ -104,8 +104,11 @@ function LoginPage() {
             {mode === "signin" ? "Welcome back, Master" : "Step into the garden"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "Sign in to continue your conversation." : "Sakura is invite-only — use the email you were invited with."}
+            {mode === "signin"
+              ? "Sign in to continue. New here? Create your account below first, Master."
+              : "Sakura is invite-only — use the email you were invited with. You'll receive a confirmation email."}
           </p>
+
           <Button
             type="button"
             onClick={onGoogle}
