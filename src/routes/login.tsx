@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { checkSignupAllowed } from "@/lib/invites.functions";
+
 import { SakuraLogo } from "@/components/SakuraLogo";
 import { PetalRain } from "@/components/PetalRain";
 import { Button } from "@/components/ui/button";
