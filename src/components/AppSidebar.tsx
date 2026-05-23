@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { MessageCircle, Mic, CalendarCheck, CalendarRange, Newspaper, LineChart, HeartPulse, UserCircle, Mail, LogOut } from "lucide-react";
+import { MessageCircle, Mic, CalendarCheck, CalendarRange, Newspaper, LineChart, HeartPulse, UserCircle, Mail, LogOut, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -55,14 +55,24 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
               {me?.role === "admin" && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive("/invites")}>
-                    <Link to="/invites">
-                      <Mail className="h-4 w-4" />
-                      <span>Invites</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/invites")}>
+                      <Link to="/invites">
+                        <Mail className="h-4 w-4" />
+                        <span>Invites</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/settings")}>
+                      <Link to="/settings">
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
