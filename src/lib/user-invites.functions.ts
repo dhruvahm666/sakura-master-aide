@@ -95,11 +95,10 @@ export const lookupInvite = createServerFn({ method: "POST" })
     return { valid: true as const, email: row.email };
   });
 
-/** Public: mark an invite as used after successful signup. Called from the client right after auth.signUp succeeds. */
+/** Public: mark an invite as used after signup. The code itself is the secret. */
 export const consumeInvite = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ code: z.string().min(1).max(128) }).parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const { data: row } = await supabaseAdmin
       .from("user_invites")
       .select("id, email, expires_at, used_at")
@@ -110,7 +109,8 @@ export const consumeInvite = createServerFn({ method: "POST" })
     }
     await supabaseAdmin
       .from("user_invites")
-      .update({ used_at: new Date().toISOString(), used_by: context.userId })
+      .update({ used_at: new Date().toISOString() })
       .eq("id", row.id);
     return { ok: true };
   });
+

@@ -103,8 +103,8 @@ function LoginPage() {
           }
           throw error;
         }
-        // If signed in immediately (auto-confirm), consume the invite now.
-        if (search.invite && signUpData.session) {
+        // Mark invite as used immediately (code is the secret).
+        if (search.invite && signUpData.user) {
           await consume({ data: { code: search.invite } }).catch(() => {});
         }
         toast.success("Check your email to confirm your account, Master.", { duration: 8000 });
