@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { lookupInvite, consumeInvite } from "@/lib/user-invites.functions";
 
 import { SakuraLogo } from "@/components/SakuraLogo";
 import { PetalRain } from "@/components/PetalRain";
@@ -11,17 +13,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    invite: typeof s.invite === "string" ? s.invite : undefined,
+    email: typeof s.email === "string" ? s.email : undefined,
+  }),
+  component: LoginPage,
+});
 
 function LoginPage() {
   const nav = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
+  const search = useSearch({ from: "/login" });
+  const lookup = useServerFn(lookupInvite);
+  const consume = useServerFn(consumeInvite);
+
+  const [mode, setMode] = useState<"signin" | "signup">(search.invite ? "signup" : "signin");
+  const [email, setEmail] = useState(search.email ?? "");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  
+  const [inviteStatus, setInviteStatus] = useState<"none" | "checking" | "valid" | "invalid">(search.invite ? "checking" : "none");
+
+  useEffect(() => {
+    if (!search.invite) return;
+    lookup({ data: { code: search.invite } }).then((res) => {
+      if (res.valid) {
+        setEmail(res.email);
+        setMode("signup");
+        setInviteStatus("valid");
+      } else {
+        setInviteStatus("invalid");
+        toast.error(
+          res.reason === "expired" ? "This invite has expired, Master."
+          : res.reason === "used" ? "This invite has already been used."
+          : "Invite not found."
+        );
+      }
+    }).catch(() => setInviteStatus("invalid"));
+  }, [search.invite, lookup]);
 
   async function onGoogle() {
     setGoogleLoading(true);
@@ -40,7 +70,6 @@ function LoginPage() {
       setGoogleLoading(false);
     }
   }
-
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,8 +90,7 @@ function LoginPage() {
         toast.success(`Welcome back, Master.`);
         nav({ to: "/chat" });
       } else {
-
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: {
             emailRedirectTo: `${window.location.origin}/chat`,
@@ -75,6 +103,10 @@ function LoginPage() {
           }
           throw error;
         }
+        // If signed in immediately (auto-confirm), consume the invite now.
+        if (search.invite && signUpData.session) {
+          await consume({ data: { code: search.invite } }).catch(() => {});
+        }
         toast.success("Check your email to confirm your account, Master.", { duration: 8000 });
         setMode("signin");
         setPassword("");
@@ -86,6 +118,7 @@ function LoginPage() {
     }
   }
 
+  const hasInvite = inviteStatus === "valid";
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -97,33 +130,39 @@ function LoginPage() {
         </Link>
         <Card className="w-full glass p-6">
           <h1 className="font-display text-2xl">
-            {mode === "signin" ? "Welcome back, Master" : "Step into the garden"}
+            {hasInvite ? "You're invited, Master" : mode === "signin" ? "Welcome back, Master" : "Step into the garden"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin"
-              ? "Sign in to continue. New here? Create your account below first, Master."
-              : "Sakura is invite-only — use the email you were invited with. You'll receive a confirmation email."}
+            {hasInvite
+              ? `Create your password for ${email} to accept this invite.`
+              : mode === "signin"
+                ? "Sign in to continue. New here? Create your account below first, Master."
+                : "Create your Sakura account."}
           </p>
 
-          <Button
-            type="button"
-            onClick={onGoogle}
-            disabled={googleLoading}
-            variant="outline"
-            className="mt-5 w-full gap-2"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.7 4-5.5 4-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.3 14.6 2.4 12 2.4 6.9 2.4 2.8 6.5 2.8 11.6S6.9 20.8 12 20.8c6.9 0 9.5-4.8 9.5-7.3 0-.5 0-.9-.1-1.3H12z"/>
-            </svg>
-            {googleLoading ? "Opening Google…" : "Continue with Google"}
-          </Button>
-          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            or
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <form onSubmit={onSubmit} className="space-y-3">
+          {!hasInvite && (
+            <>
+              <Button
+                type="button"
+                onClick={onGoogle}
+                disabled={googleLoading}
+                variant="outline"
+                className="mt-5 w-full gap-2"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.7 4-5.5 4-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.3 14.6 2.4 12 2.4 6.9 2.4 2.8 6.5 2.8 11.6S6.9 20.8 12 20.8c6.9 0 9.5-4.8 9.5-7.3 0-.5 0-.9-.1-1.3H12z"/>
+                </svg>
+                {googleLoading ? "Opening Google…" : "Continue with Google"}
+              </Button>
+              <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="h-px flex-1 bg-border" />
+                or
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            </>
+          )}
 
+          <form onSubmit={onSubmit} className="space-y-3">
             {mode === "signup" && (
               <div>
                 <Label htmlFor="name">How should Sakura address you?</Label>
@@ -132,7 +171,7 @@ function LoginPage() {
             )}
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1" />
+              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1" readOnly={hasInvite} />
             </div>
             <div>
               <Label htmlFor="pw">Password</Label>
@@ -142,32 +181,32 @@ function LoginPage() {
               {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
-          <div className="mt-5 border-t border-border/60 pt-4">
-            {mode === "signin" ? (
-              <>
-                <p className="mb-2 text-center text-xs text-muted-foreground">
-                  Don't have an account yet, Master?
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => { setMode("signup"); setPassword(""); }}
-                  className="w-full border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  Create Account
-                </Button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => { setMode("signin"); setPassword(""); }}
-                className="w-full text-sm text-muted-foreground hover:text-primary"
-              >
-                ← Already have an account? Sign in
-              </button>
-            )}
-          </div>
 
+          {!hasInvite && (
+            <div className="mt-5 border-t border-border/60 pt-4">
+              {mode === "signin" ? (
+                <>
+                  <p className="mb-2 text-center text-xs text-muted-foreground">Don't have an account yet, Master?</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setMode("signup"); setPassword(""); }}
+                    className="w-full border-primary/50 text-primary hover:bg-primary/10"
+                  >
+                    Create Account
+                  </Button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setMode("signin"); setPassword(""); }}
+                  className="w-full text-sm text-muted-foreground hover:text-primary"
+                >
+                  ← Already have an account? Sign in
+                </button>
+              )}
+            </div>
+          )}
         </Card>
       </div>
     </div>
