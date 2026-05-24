@@ -82,22 +82,31 @@ export function cleanForSpeech(text: string): string {
 }
 
 /* ============================================================
-   Sakura speech — ElevenLabs (Rachel) via server route, with
-   SpeechSynthesis fallback if the network fails.
+   Sakura speech — Browser Web Speech Synthesis (female voice).
    ============================================================ */
 
+function pickFemaleVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const match = voices.find((v) =>
+    v.name.includes("Female") ||
+    v.name.includes("Samantha") ||
+    v.name.includes("Google UK English Female") ||
+    v.name.includes("Microsoft Zira") ||
+    v.name.includes("Karen") ||
+    v.name.includes("Moira") ||
+    v.name.includes("Veena")
+  );
+  return match ?? voices.find((v) => /en[-_]/i.test(v.lang)) ?? voices[0] ?? null;
+}
+
 export function useSakuraSpeech() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const tokenRef = useRef(0);
   const [speaking, setSpeaking] = useState(false);
 
   const stop = useCallback(() => {
     tokenRef.current++;
-    try {
-      const a = audioRef.current;
-      if (a) { a.pause(); a.src = ""; }
-    } catch { /* noop */ }
-    audioRef.current = null;
     try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
     setSpeaking(false);
   }, []);
@@ -116,39 +125,17 @@ export function useSakuraSpeech() {
     };
 
     try {
-      const res = await fetch("/api/voice/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (tokenRef.current !== myToken) return;
-      if (!res.ok) throw new Error(`TTS ${res.status}`);
-      const blob = await res.blob();
-      if (tokenRef.current !== myToken) return;
-
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.playbackRate = speedToRate(opts?.speed ?? "normal");
-      audioRef.current = audio;
-      audio.onplay = () => opts?.onStart?.();
-      audio.onended = () => { URL.revokeObjectURL(url); finish(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); finish(); };
-      await audio.play();
-      return;
-    } catch (e) {
-      console.warn("ElevenLabs TTS failed, falling back", e);
-    }
-
-    // Fallback: browser SpeechSynthesis
-    try {
-      if (!window.speechSynthesis) { finish(); return; }
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = speedToRate(opts?.speed ?? "normal");
-      u.pitch = 1.05;
-      u.onstart = () => opts?.onStart?.();
-      u.onend = finish;
-      u.onerror = finish;
-      window.speechSynthesis.speak(u);
+      if (typeof window === "undefined" || !window.speechSynthesis) { finish(); return; }
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voice = pickFemaleVoice();
+      if (voice) utterance.voice = voice;
+      utterance.pitch = 1.2;
+      utterance.rate = 0.9 * speedToRate(opts?.speed ?? "normal");
+      utterance.volume = 1;
+      utterance.onstart = () => opts?.onStart?.();
+      utterance.onend = finish;
+      utterance.onerror = finish;
+      window.speechSynthesis.speak(utterance);
     } catch {
       finish();
     }
