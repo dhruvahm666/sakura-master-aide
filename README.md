@@ -1,3 +1,4 @@
+
 # 🌸 Sakura — Personal AI Agent
 
 > My personal AI assistant built from scratch to manage my life, knowledge, and daily routine
@@ -59,3 +60,6 @@ need for a smarter daily workflow.
 ---
 
 *Built by Dhruva H M — 17y/o developer from Karnataka, India*
+<img width="1512" height="697" alt="Screenshot 2026-06-14 115532" src="https://github.com/user-attachments/assets/d2511ee9-416a-4b70-9e52-868bfd991a35" />
+<img width="1535" height="710" alt="Screenshot 2026-06-14 115448" src="https://github.com/user-attachments/assets/637bfb79-c2b1-4b0f-922f-c0e95dbd32f6" />
+<img width="1536" height="716" alt="Screenshot 2026-06-14 115349" src="https://github.com/user-attachments/assets/82d4bf50-0e9d-445c-bac9-649fb44e6628" />
