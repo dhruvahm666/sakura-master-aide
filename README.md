@@ -12,7 +12,7 @@ life manager and assistant. She handles everything from daily scheduling
 to decision making, current affairs, and personal advice — all in one place.
 
 Think of her as a personal manager, scheduler, and knowledge companion 
-— built entirely by me for my own use.
+— built by me for my own use.
 
 ---
 
