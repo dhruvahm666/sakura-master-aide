@@ -23,7 +23,7 @@ Think of her as a personal manager, scheduler, and knowledge companion
 - 📰 **Current Affairs** — Provides up to date news and current affairs
 - 💬 **Conversational Chat** — Natural conversation and assistance anytime
 - 🧠 **Decision Making Support** — Helps think through decisions with AI reasoning
-- 💊 **Medical & Supplement Advice** — Provides guidance on health, supplements, and medications
+- ❤️ **General Wellness Tips** – Offers general health and wellness suggestions (not a substitute for professional medical advice)
 - 🌱 **Life Advice** — Offers thoughtful personal guidance and motivation
 - 📚 **Knowledge Companion** — Helps explore and learn new topics on demand
 
