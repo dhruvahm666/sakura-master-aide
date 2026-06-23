@@ -5,7 +5,7 @@
 
 ---
 
-## 📌 What is Sakura?
+#
 
 Sakura is a custom-built personal AI agent designed to act as a smart 
 life manager and assistant. She handles everything from daily scheduling 
