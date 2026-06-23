@@ -1,8 +1,7 @@
 
 # 🌸 Sakura — Personal AI Agent
 
-> My personal AI assistant built from scratch to manage my life, knowledge, and daily routine
-
+> 
 ---
 
 ## 📌 What is Sakura?
