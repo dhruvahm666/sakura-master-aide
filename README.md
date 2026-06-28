@@ -78,5 +78,5 @@ Sakura is the result of combining my passion for AI with a real personal need fo
 ---
 
 <p align="center">
-  <i>Built by Dhruva H M — 17y/o developer from Karnataka, India</i>
+  <i>Built by Dhruva H M — developer from Karnataka, India</i>
 </p>
